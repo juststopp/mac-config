@@ -27,5 +27,3 @@ path=(
   $HOME/Library/Python/3.9/bin
 )
 
-# Google Cloud SDK
-[[ -f $HOME/Downloads/google-cloud-sdk/path.zsh.inc ]] && source $HOME/Downloads/google-cloud-sdk/path.zsh.inc

@@ -37,7 +37,6 @@ zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|=*' 'l:|=* r:|=*' 
 zstyle ':completion:*' menu no
 zstyle ':completion:*:descriptions' format '[%d]'
 zstyle ':completion:*:git-checkout:*' sort false
-[[ -f $HOME/Downloads/google-cloud-sdk/completion.zsh.inc ]] && source $HOME/Downloads/google-cloud-sdk/completion.zsh.inc
 
 # fzf-tab : la complétion (Tab) s'affiche dans fzf, avec aperçu
 source $ZPLUG/fzf-tab/fzf-tab.plugin.zsh
