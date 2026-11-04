@@ -19,6 +19,7 @@ git clone https://github.com/juststopp/mac-config.git ~/dotfiles && ~/dotfiles/i
 | `config/nvim/` | Neovim écrit de zéro : lazy.nvim, LSP, treesitter, snacks… |
 | `config/ghostty/` | Terminal Ghostty |
 | `config/starship.toml` | Prompt |
+| `config/zen/` | Zen Browser : thème Catppuccin Mocha (`chrome/`) et réglages (`user.js`, mots de passe confiés à Apple Mots de passe) |
 | `ubersicht/` | Widgets du bureau (lus directement ici par Übersicht) : horloge, progression du temps, serveurs de dev, failles exploitées (CISA KEV), stats système |
 | `scripts/` | `sysstats`, `devservers`, `kev` : données des widgets (utilisables aussi dans le terminal) |
 | `Brewfile` | Toutes les apps et outils (`brew bundle dump --force` pour le mettre à jour) |

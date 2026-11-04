@@ -69,6 +69,18 @@ WDIR_HEX=$(osascript -l JavaScript -e "ObjC.import('Foundation'); \$.NSKeyedArch
 defaults write tracesOf.Uebersicht widgetDirectory -data "$WDIR_HEX"
 echo "  ✓ dossier des widgets : ${DOT/#$HOME/~}/ubersicht"
 
+step "Zen Browser (thème Catppuccin, réglages)"
+ZEN_DIR="$HOME/Library/Application Support/zen"
+ZEN_PROFILE=$(awk -F= '/^\[Install/ {f=1} f && /^Default=/ {print $2; exit}' "$ZEN_DIR/profiles.ini" 2>/dev/null || true)
+if [[ -n $ZEN_PROFILE && -d "$ZEN_DIR/$ZEN_PROFILE" ]]; then
+  for f in userChrome.css userContent.css zen-logo-mocha.svg; do
+    link "config/zen/chrome/$f" "$ZEN_DIR/$ZEN_PROFILE/chrome/$f"
+  done
+  link config/zen/user.js "$ZEN_DIR/$ZEN_PROFILE/user.js"
+else
+  echo "  ! Profil Zen introuvable : lance Zen une première fois, puis ./install.sh --no-brew"
+fi
+
 step "Réglages macOS"
 "$DOT/macos.sh"
 
