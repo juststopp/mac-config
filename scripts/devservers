@@ -1,0 +1,48 @@
+#!/bin/bash
+# devservers — serveurs de dev en écoute, au format JSON (pour le widget Übersicht)
+# Un « serveur de dev » = un processus qui écoute un port TCP et qui a été lancé
+# depuis un dossier de ton home (pas les services système, lancés depuis /).
+export LC_ALL=C
+UID_ME=$(id -u)
+
+/usr/sbin/lsof -nP -a -iTCP -sTCP:LISTEN -u "$UID_ME" -F pn 2>/dev/null | /usr/bin/python3 -I -c '
+import json, os, re, subprocess, sys
+
+home = os.path.expanduser("~")
+projets = os.path.join(home, "projets")
+ports, pid = {}, None
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if line.startswith("p"):
+        pid = int(line[1:])
+    elif line.startswith("n") and pid:
+        m = re.search(r":(\d+)$", line)
+        if m and int(m.group(1)) < 49152:            # ignore les ports éphémères
+            ports.setdefault(pid, set()).add(int(m.group(1)))
+
+def run(*cmd):
+    try: return subprocess.run(cmd, capture_output=True, text=True, timeout=3).stdout
+    except Exception: return ""
+
+TOOLS = [("next", "Next.js"), ("expo", "Expo"), ("vite", "Vite"), ("astro", "Astro"), ("nuxt", "Nuxt"),
+         ("remix", "Remix"), ("webpack", "Webpack"), ("storybook", "Storybook"), ("firebase", "Firebase"),
+         ("supabase", "Supabase"), ("uvicorn", "Uvicorn"), ("gunicorn", "Gunicorn"), ("flask", "Flask"),
+         ("manage.py", "Django"), ("http.server", "Python http"), ("rails", "Rails"), ("php", "PHP"),
+         ("bun", "Bun"), ("deno", "Deno"), ("node", "Node"), ("python", "Python"), ("ruby", "Ruby"), ("java", "Java")]
+
+out = []
+for p, prts in ports.items():
+    cwd = run("/usr/sbin/lsof", "-a", "-p", str(p), "-d", "cwd", "-Fn")
+    cwd = next((l[1:] for l in cwd.splitlines() if l.startswith("n")), "")
+    if not cwd.startswith(home + "/"):
+        continue                                       # service système / app : on ignore
+    args = run("/bin/ps", "-o", "args=", "-p", str(p)).strip().lower()
+    tool = next((label for key, label in TOOLS if key in args), os.path.basename(args.split(" ")[0]) or "?")
+    base = projets if cwd.startswith(projets + "/") else home
+    project = os.path.relpath(cwd, base)
+    for port in sorted(prts):
+        out.append({"port": port, "project": project, "tool": tool, "pid": p})
+
+out.sort(key=lambda s: (s["project"], s["port"]))
+print(json.dumps(out))
+'

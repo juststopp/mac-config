@@ -1,0 +1,31 @@
+# ~/.zprofile — shell de connexion (Ghostty en ouvre un par fenêtre)
+# Géré dans ~/dotfiles/zsh/zprofile · Ici : uniquement le PATH et l'environnement.
+
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+export EDITOR=nvim
+export VISUAL=nvim
+export MANPAGER="nvim +Man!"
+export HOMEBREW_NO_ENV_HINTS=1
+
+# Node via nvm : on met directement la version par défaut dans le PATH,
+# sans charger nvm (qui ralentissait chaque ouverture de terminal).
+export NVM_DIR="$HOME/.nvm"
+if [[ -r $NVM_DIR/alias/default ]]; then
+  _nvm_bins=( $NVM_DIR/versions/node/v${$(<$NVM_DIR/alias/default)#v}*/bin(Nn) )
+  (( ${#_nvm_bins} )) && path=( ${_nvm_bins[-1]} $path )
+  unset _nvm_bins
+fi
+
+typeset -U path PATH
+path=(
+  $HOME/.local/bin
+  $HOME/.antigravity/antigravity/bin
+  $path
+  $HOME/.cargo/bin
+  $HOME/.docker/bin
+  $HOME/Library/Python/3.9/bin
+)
+
+# Google Cloud SDK
+[[ -f $HOME/Downloads/google-cloud-sdk/path.zsh.inc ]] && source $HOME/Downloads/google-cloud-sdk/path.zsh.inc

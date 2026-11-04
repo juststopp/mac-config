@@ -1,0 +1,115 @@
+# ╭──────────────────────────────────────────────────────────────╮
+# │  ~/.zshrc · Catppuccin Mocha · géré dans ~/dotfiles/zsh/zshrc │
+# │  Sans Oh My Zsh : plugins chargés directement (rapide).       │
+# ╰──────────────────────────────────────────────────────────────╯
+ZPLUG="$HOME/.local/share/zsh"
+
+# ── Historique ──────────────────────────────────────────────────
+HISTFILE=~/.zsh_history
+HISTSIZE=100000
+SAVEHIST=100000
+setopt EXTENDED_HISTORY SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_IGNORE_SPACE \
+       HIST_REDUCE_BLANKS HIST_VERIFY
+setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS INTERACTIVE_COMMENTS NO_BEEP
+
+# ── Clavier ─────────────────────────────────────────────────────
+bindkey -e
+autoload -U up-line-or-beginning-search down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+bindkey '^[[A' up-line-or-beginning-search     # ↑ : historique filtré par ce qui est tapé
+bindkey '^[OA' up-line-or-beginning-search
+bindkey '^[[B' down-line-or-beginning-search
+bindkey '^[OB' down-line-or-beginning-search
+bindkey '^[[1;5C' forward-word                 # Ctrl+→
+bindkey '^[[1;5D' backward-word                # Ctrl+←
+bindkey '^[[3~' delete-char
+
+# ── Complétion ──────────────────────────────────────────────────
+fpath=($HOMEBREW_PREFIX/share/zsh-completions $fpath)
+autoload -Uz compinit
+# Reconstruit le cache de complétion au plus une fois par jour
+() {
+  setopt local_options extended_glob
+  if [[ ! -s ~/.zcompdump || -n ~/.zcompdump(#qN.mh+24) ]]; then compinit; else compinit -C; fi
+}
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|=*' 'l:|=* r:|=*'  # insensible à la casse
+zstyle ':completion:*' menu no
+zstyle ':completion:*:descriptions' format '[%d]'
+zstyle ':completion:*:git-checkout:*' sort false
+[[ -f $HOME/Downloads/google-cloud-sdk/completion.zsh.inc ]] && source $HOME/Downloads/google-cloud-sdk/completion.zsh.inc
+
+# fzf-tab : la complétion (Tab) s'affiche dans fzf, avec aperçu
+source $ZPLUG/fzf-tab/fzf-tab.plugin.zsh
+zstyle ':fzf-tab:*' use-fzf-default-opts yes
+zstyle ':fzf-tab:*' switch-group '<' '>'
+zstyle ':fzf-tab:complete:(cd|z|ls|eza):*' fzf-preview 'eza -1 --color=always --icons $realpath'
+
+# ── fzf (Ctrl+R historique · Ctrl+T fichiers · Alt+C dossiers) ─
+export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
+export FZF_DEFAULT_OPTS=" \
+  --height=50% --layout=reverse --border=rounded --info=inline-right --pointer='▌' --marker='┃' \
+  --color=bg+:#313244,bg:-1,spinner:#f5e0dc,hl:#f38ba8 \
+  --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
+  --color=marker:#b4befe,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8 \
+  --color=selected-bg:#45475a,border:#6c7086,label:#cdd6f4"
+export FZF_CTRL_T_OPTS="--preview 'bat --color=always --style=numbers --line-range=:300 {}'"
+export FZF_ALT_C_OPTS="--preview 'eza --tree --level=2 --color=always --icons {}'"
+source <(fzf --zsh)
+
+# ── Outils ──────────────────────────────────────────────────────
+eval "$(zoxide init zsh)"          # z <bout de nom> : saute vers un dossier déjà visité
+eval "$(starship init zsh)"        # prompt
+
+# nvm se charge seulement quand on tape « nvm »
+nvm() { unfunction nvm; source "$NVM_DIR/nvm.sh"; nvm "$@"; }
+
+# Intégration iTerm2 uniquement dans iTerm2 (Ghostty a la sienne)
+[[ $TERM_PROGRAM == iTerm.app && -e ~/.iterm2_shell_integration.zsh ]] && source ~/.iterm2_shell_integration.zsh
+
+# ── Alias ───────────────────────────────────────────────────────
+alias nano='nvim' vim='nvim' vi='nvim' v='nvim'
+alias sudo='sudo '   # permet « sudo nano » → nvim
+alias ls='eza --icons=auto --group-directories-first'
+alias l='eza -lah --icons=auto --group-directories-first --git'
+alias ll='eza -lh --icons=auto --group-directories-first --git'
+alias la='eza -a --icons=auto --group-directories-first'
+alias lt='eza --tree --level=2 --icons=auto --git-ignore'
+alias cat='bat --paging=never --style=plain'
+alias lg='lazygit'
+alias ..='cd ..' ...='cd ../..' ....='cd ../../..'
+alias reload='exec zsh'
+alias dots='cd ~/dotfiles && nvim .'
+alias brewup='brew update && brew upgrade && brew cleanup --prune=7'
+alias py2='docker run --rm -it -v "$PWD":/workdir -w /workdir python:2 bash'
+[[ -z ${CLAUDECODE:-} ]] && alias cd='z'
+
+# yazi (explorateur de fichiers) : « y », et le terminal suit le dossier en sortant
+y() {
+  local tmp cwd
+  tmp="$(mktemp -t yazi-cwd.XXXXXX)"
+  yazi "$@" --cwd-file="$tmp"
+  cwd="$(command cat -- "$tmp")"
+  [[ -n $cwd && $cwd != $PWD ]] && builtin cd -- "$cwd"
+  rm -f -- "$tmp"
+}
+
+# Libère de la place : caches npm, Homebrew, builds Xcode
+mac-clean() {
+  local before=$(df -k /System/Volumes/Data | awk 'NR==2{print $4}')
+  npm cache clean --force 2>/dev/null
+  brew cleanup --prune=all -s
+  rm -rf ~/Library/Developer/Xcode/DerivedData/* ~/Library/Caches/pip ~/Library/Caches/CocoaPods
+  xcrun simctl delete unavailable 2>/dev/null
+  local after=$(df -k /System/Volumes/Data | awk 'NR==2{print $4}')
+  print -P "%F{green}✓ $(( (after-before)/1024 )) Mo libérés · $(( after/1024/1024 )) Go libres%f"
+}
+
+# ── Plugins (toujours en dernier) ───────────────────────────────
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#6c7086'
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+source $HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh   # → pour accepter la suggestion
+source $HOME/dotfiles/zsh/vendor/catppuccin_mocha-zsh-syntax-highlighting.zsh
+source $HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh

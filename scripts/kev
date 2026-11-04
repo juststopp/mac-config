@@ -1,0 +1,46 @@
+#!/bin/bash
+# kev — dernières failles activement exploitées (catalogue public CISA KEV), au format JSON
+#   kev [nombre]   (6 par défaut)
+# Le catalogue est retéléchargé au plus toutes les 6 h et gardé en cache hors ligne.
+CACHE="$HOME/Library/Caches/dotfiles/kev.json"
+URL="https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+mkdir -p "$(dirname "$CACHE")"
+
+if [[ ! -s $CACHE || -n $(/usr/bin/find "$CACHE" -mmin +360 2>/dev/null) ]]; then
+  tmp="$CACHE.tmp"
+  if /usr/bin/curl -fsSL --max-time 20 "$URL" -o "$tmp" \
+     && /usr/bin/python3 -I -c 'import json, sys; json.load(open(sys.argv[1]))' "$tmp" 2>/dev/null; then
+    mv "$tmp" "$CACHE"
+  else
+    rm -f "$tmp"
+  fi
+fi
+
+if [[ ! -s $CACHE ]]; then
+  echo '{"error": "Catalogue indisponible (hors ligne ?)", "items": []}'
+  exit 0
+fi
+
+/usr/bin/python3 -I - "$CACHE" "${1:-6}" <<'PY'
+import json, re, sys
+data = json.load(open(sys.argv[1]))
+n = int(sys.argv[2])
+vulns = sorted(data.get("vulnerabilities", []),
+               key=lambda v: (v.get("dateAdded", ""), v.get("cveID", "")), reverse=True)
+items = []
+for v in vulns:
+    cve = str(v.get("cveID", ""))
+    if not re.fullmatch(r"CVE-\d{4}-\d{4,7}", cve):   # identifiant validé : il sert à construire un lien
+        continue
+    items.append({
+        "cve": cve,
+        "vendor": str(v.get("vendorProject", ""))[:40],
+        "product": str(v.get("product", ""))[:40],
+        "name": str(v.get("vulnerabilityName", ""))[:100],
+        "date": str(v.get("dateAdded", ""))[:10],
+        "ransomware": v.get("knownRansomwareCampaignUse") == "Known",
+    })
+    if len(items) >= n:
+        break
+print(json.dumps({"released": str(data.get("dateReleased", ""))[:10], "total": data.get("count", len(vulns)), "items": items}))
+PY

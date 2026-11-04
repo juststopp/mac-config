@@ -1,0 +1,11 @@
+#!/bin/bash
+# sysstats — CPU, RAM, disque et batterie au format JSON (pour le widget Übersicht)
+ncpu=$(sysctl -n hw.ncpu)
+cpu=$(ps -A -o %cpu= | awk -v n="$ncpu" '{s+=$1} END {printf "%d", s/n}')
+mem=$(( 100 - $(memory_pressure -Q 2>/dev/null | grep -Eo '[0-9]+%' | tr -d '%' || echo 100) ))
+read -r disk_free disk_pct < <(df -k /System/Volumes/Data | awk 'NR==2 {gsub("%","",$5); printf "%d %d", $4/1024/1024, $5}')
+batt_info=$(pmset -g batt)
+batt=$(echo "$batt_info" | grep -Eo '[0-9]+%' | head -1 | tr -d '%')
+charging=$(echo "$batt_info" | grep -q "AC Power" && echo true || echo false)
+printf '{"cpu":%d,"mem":%d,"diskFree":%d,"diskPct":%d,"batt":%d,"charging":%s}\n' \
+  "$cpu" "$mem" "$disk_free" "$disk_pct" "${batt:-0}" "$charging"

@@ -1,0 +1,37 @@
+# Ghostty · Catppuccin Mocha · géré dans ~/dotfiles/config/ghostty/config
+# Recharger après modification : Cmd+Maj+,
+# Splits : Cmd+D (droite), Cmd+Maj+D (bas), Cmd+Option+flèches (naviguer)
+
+theme = Catppuccin Mocha
+font-family = JetBrainsMono Nerd Font
+font-size = 16
+font-thicken = true
+adjust-cell-height = 8%
+
+window-padding-x = 14
+window-padding-y = 10
+window-padding-balance = true
+window-save-state = always
+window-colorspace = display-p3
+background-opacity = 0.94
+background-blur = 24
+macos-titlebar-style = tabs
+unfocused-split-opacity = 0.85
+
+cursor-style = bar
+mouse-hide-while-typing = true
+copy-on-select = clipboard
+confirm-close-surface = false
+
+# Clavier AZERTY : Option reste Option (pour taper | { } [ ] ~ \)
+macos-option-as-alt = false
+
+# SSH : annonce TERM=xterm-256color aux serveurs (reconnu partout → prompt et ls en couleur).
+# Pas de ssh-terminfo : il envoie TERM=xterm-ghostty, que les .bashrc d'Ubuntu/Debian
+# ne reconnaissent pas comme terminal couleur.
+shell-integration-features = ssh-env
+
+# Terminal déroulant accessible partout : Cmd+Échap
+quick-terminal-position = top
+quick-terminal-animation-duration = 0.15
+keybind = global:cmd+escape=toggle_quick_terminal
